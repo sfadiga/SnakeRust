@@ -12,6 +12,17 @@ pub const HALF_WORLD_HEIGHT: f32 = WORLD_HEIGHT / 2.0;
 pub const SCALE: f32 = 2.0;
 pub const OFFSET: f32 = SCALE / 2.0;
 
+fn check_out_of_bounds(x: f32, y: f32) -> bool {
+    // NOT WORKING
+    if (x - OFFSET) <= (-HALF_WORLD_WIDTH) || (x + OFFSET) >= (HALF_WORLD_WIDTH) {
+        return true;
+    }
+    if (y - OFFSET) <= (-HALF_WORLD_HEIGHT) || (y + OFFSET) >= (HALF_WORLD_HEIGHT) {
+        return true;
+    }
+    return false;
+}
+
 fn constrain(value: f32, min: f32, max: f32) -> f32 {
     if value > max {
         return max;
@@ -81,21 +92,27 @@ impl Snake {
         self.sy = _sy;
     }
 
-    pub fn update(&mut self) {
-        if self.tail.len() == self.size && self.tail.len() > 0 {
-            for i in 0..self.tail.len()-1 {
-                self.tail[i] = self.tail[i + 1];
+    pub fn game_over(&self) -> bool {
+        for el in self.tail.iter() {
+            if el.0 == self.px && el.1 == self.py {
+                return true;
             }
         }
-        if self.size != self.tail.len() {
-            self.tail[self.size-1] = (self.px, self.py);
+        return check_out_of_bounds(self.px, self.py);
+    }
+
+    pub fn update(&mut self) {
+        if self.tail.len() == self.size && self.tail.len() > 0 {
+            for i in 0..self.tail.len() - 1 {
+                self.tail[i] = self.tail[i + 1];
+            }
+            let last = self.tail.len() - 1;
+            self.tail[last] = (self.px, self.py);
         }
-        /*
-        // check if new segment will be added
         if self.size != self.tail.len() {
             self.tail.push((self.px, self.py));
         }
-        */
+
         self.px = self.px + self.sx * SCALE;
         self.py = self.py + self.sy * SCALE;
 
@@ -108,7 +125,7 @@ impl Snake {
             self.py,
             -HALF_WORLD_HEIGHT + OFFSET,
             HALF_WORLD_HEIGHT - OFFSET,
-        );  
+        );
     }
 
     pub fn check_eat(&mut self, fx: f32, fy: f32) -> bool {
@@ -121,21 +138,22 @@ impl Snake {
 
     pub fn draw(&self) {
         for i in 0..self.tail.len() {
-            draw_rect(
+            draw_rect_outline(
                 vec2(self.tail[i].0, self.tail[i].1),
                 splat(self.dimension),
+                0.5,
                 self.color,
                 self.z,
             );
         }
 
-        draw_rect(
+        draw_rect_outline(
             vec2(self.px, self.py),
             splat(self.dimension),
+            0.5,
             self.color,
             self.z,
         );
-     
     }
 }
 
@@ -159,11 +177,12 @@ impl Fruit {
             py: y,
             z: 0,
             dimension: SCALE,
-            color: RED,
+            color: FUCHSIA,
         }
     }
 
     pub fn new_pos(&mut self) {
+        //TODO check if new pos is inside the snake then, try other pos
         let mut rng = rand::thread_rng();
         let mut x = f32::floor(rng.gen_range(-HALF_WORLD_WIDTH..=HALF_WORLD_WIDTH));
         let mut y = f32::floor(rng.gen_range(-HALF_WORLD_HEIGHT..=HALF_WORLD_HEIGHT));

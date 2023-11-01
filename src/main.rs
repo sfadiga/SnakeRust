@@ -39,6 +39,7 @@ fn update(_state: &mut GameState, _c: &mut EngineContext) {
     let mut state = STATE.borrow_mut();
     state.tick += 1;
 
+    // TODO does not allow the snake to move backwars inside itself
     if is_key_down(KeyCode::W) {
         state.game._snake.set_speed(0.0, 1.0);
     }
@@ -53,7 +54,14 @@ fn update(_state: &mut GameState, _c: &mut EngineContext) {
     }
 
     if state.tick % TICK == 0 {
-
+        if state.game._snake.game_over() {
+            draw_text(
+                format!("GAME OVER",).as_str(),
+                vec2(0.0, 0.0),
+                RED,
+                TextAlign::Center,
+            );
+        }
         state.game._snake.update();
 
         let fx: f32 = state.game._fruit.px;
@@ -69,7 +77,8 @@ fn update(_state: &mut GameState, _c: &mut EngineContext) {
     draw_text(
         format!(
             "snake size:{}, tail:{}",
-            state.game._snake.size, state.game._snake.tail.len()
+            state.game._snake.size,
+            state.game._snake.tail.len()
         )
         .as_str(),
         vec2(-8.0, 14.0),
