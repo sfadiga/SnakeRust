@@ -2,6 +2,8 @@
 
 Well, snake game made in Rust.
 
+Screenshots:
+
 ![image](https://github.com/sfadiga/SnakeRust/assets/2021800/c70dc1ef-a358-4986-9b79-9656c2f7deaa)
 
 
