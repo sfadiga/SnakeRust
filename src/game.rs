@@ -13,23 +13,13 @@ pub const SCALE: f32 = 2.0;
 pub const OFFSET: f32 = SCALE / 2.0;
 
 fn check_out_of_bounds(x: f32, y: f32) -> bool {
-    // NOT WORKING
-    if (x - OFFSET) <= (-HALF_WORLD_WIDTH) || (x + OFFSET) >= (HALF_WORLD_WIDTH) {
+    if f32::abs(x) > (HALF_WORLD_WIDTH - OFFSET) {
         return true;
     }
-    if (y - OFFSET) <= (-HALF_WORLD_HEIGHT) || (y + OFFSET) >= (HALF_WORLD_HEIGHT) {
+    if f32::abs(y) > (HALF_WORLD_HEIGHT - OFFSET) {
         return true;
     }
     return false;
-}
-
-fn constrain(value: f32, min: f32, max: f32) -> f32 {
-    if value > max {
-        return max;
-    } else if value < min {
-        return min;
-    }
-    return value;
 }
 
 fn apply_offset(value: f32) -> f32 {
@@ -88,8 +78,13 @@ impl Snake {
     }
 
     pub fn set_speed(&mut self, _sx: f32, _sy: f32) {
-        self.sx = _sx;
-        self.sy = _sy;
+        // these ifs avoid the snake to go in reverse
+        if f32::abs(_sx) != f32::abs(self.sx) {
+            self.sx = _sx;
+        }
+        if f32::abs(_sy) != f32::abs(self.sy) {
+            self.sy = _sy;
+        }
     }
 
     pub fn game_over(&self) -> bool {
@@ -115,17 +110,6 @@ impl Snake {
 
         self.px = self.px + self.sx * SCALE;
         self.py = self.py + self.sy * SCALE;
-
-        self.px = constrain(
-            self.px,
-            -HALF_WORLD_WIDTH + OFFSET,
-            HALF_WORLD_WIDTH - OFFSET,
-        );
-        self.py = constrain(
-            self.py,
-            -HALF_WORLD_HEIGHT + OFFSET,
-            HALF_WORLD_HEIGHT - OFFSET,
-        );
     }
 
     pub fn check_eat(&mut self, fx: f32, fy: f32) -> bool {
@@ -138,22 +122,20 @@ impl Snake {
 
     pub fn draw(&self) {
         for i in 0..self.tail.len() {
-            draw_rect_outline(
-                vec2(self.tail[i].0, self.tail[i].1),
-                splat(self.dimension),
-                0.5,
+            Snake::draw_snake(
+                self.tail[i].0,
+                self.tail[i].1,
+                self.dimension,
                 self.color,
                 self.z,
             );
         }
+        Snake::draw_snake(self.px, self.py, self.dimension, self.color, self.z);
+    }
 
-        draw_rect_outline(
-            vec2(self.px, self.py),
-            splat(self.dimension),
-            0.5,
-            self.color,
-            self.z,
-        );
+    fn draw_snake(x: f32, y: f32, dim: f32, color: Color, z: i32) {
+        draw_rect(vec2(x, y), splat(dim - 0.1), color, z + 1);
+        draw_rect_outline(vec2(x, y), splat(dim), 0.5, BLACK, z);
     }
 }
 

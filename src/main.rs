@@ -2,18 +2,24 @@ use comfy::*;
 mod game;
 use game::*;
 
-simple_game!("Snake", GameState, config, setup, update);
+simple_game!("Snake", GameStruct, config, setup, update);
 
 pub const TICK: u64 = 10;
+enum GameState {
+    Welcome,
+    Playing,
+    GameOver,
+}
 
 struct SmallGlobalState {
     pub game: Game,
     pub tick: u64,
+    pub game_state: GameState,
 }
 
-pub struct GameState {}
+pub struct GameStruct {}
 
-impl GameState {
+impl GameStruct {
     pub fn new(_c: &EngineContext) -> Self {
         Self {}
     }
@@ -23,6 +29,7 @@ static STATE: Lazy<AtomicRefCell<SmallGlobalState>> = Lazy::new(|| {
     AtomicRefCell::new(SmallGlobalState {
         game: Game::create(),
         tick: 0,
+        game_state: GameState::Welcome,
     })
 });
 
@@ -33,13 +40,12 @@ fn config(config: GameConfig) -> GameConfig {
     }
 }
 
-fn setup(_state: &mut GameState, _c: &mut EngineContext) {}
+fn setup(_state: &mut GameStruct, _c: &mut EngineContext) {}
 
-fn update(_state: &mut GameState, _c: &mut EngineContext) {
+fn update(_state: &mut GameStruct, _c: &mut EngineContext) {
     let mut state = STATE.borrow_mut();
-    state.tick += 1;
+    state.tick += 1; // controls rendering
 
-    // TODO does not allow the snake to move backwars inside itself
     if is_key_down(KeyCode::W) {
         state.game._snake.set_speed(0.0, 1.0);
     }
@@ -52,47 +58,48 @@ fn update(_state: &mut GameState, _c: &mut EngineContext) {
     if is_key_down(KeyCode::D) {
         state.game._snake.set_speed(1.0, 0.0);
     }
+    if is_key_down(KeyCode::Return) {
+        state.game_state = GameState::Playing;
+    }
 
-    if state.tick % TICK == 0 {
-        if state.game._snake.game_over() {
+    if state.game._snake.game_over() {
+        state.game_state = GameState::GameOver;
+    }
+
+    match state.game_state {
+        GameState::Welcome => {
             draw_text(
-                format!("GAME OVER",).as_str(),
+                format!("Snake Game (Enter to Start)",).as_str(),
+                vec2(0.0, 0.0),
+                GREEN,
+                TextAlign::Center,
+            );
+        }
+        GameState::Playing => {
+            if state.tick % TICK == 0 {
+                state.game._snake.draw();
+                state.game._fruit.draw();
+
+                state.game._snake.update();
+
+                let fx: f32 = state.game._fruit.px;
+                let fy: f32 = state.game._fruit.py;
+                if state.game._snake.check_eat(fx, fy) {
+                    state.game._fruit.new_pos();
+                }
+            }
+        }
+        GameState::GameOver => {
+            draw_text(
+                format!("GAME OVER (Enter to try again)",).as_str(),
                 vec2(0.0, 0.0),
                 RED,
                 TextAlign::Center,
             );
+            if is_key_down(KeyCode::Return) {
+                state.game_state = GameState::Playing;
+                state.game = Game::create();
+            }
         }
-        state.game._snake.update();
-
-        let fx: f32 = state.game._fruit.px;
-        let fy: f32 = state.game._fruit.py;
-        if state.game._snake.check_eat(fx, fy) {
-            state.game._fruit.new_pos();
-        }
-
-        state.game._snake.draw();
-        state.game._fruit.draw();
     }
-
-    draw_text(
-        format!(
-            "snake size:{}, tail:{}",
-            state.game._snake.size,
-            state.game._snake.tail.len()
-        )
-        .as_str(),
-        vec2(-8.0, 14.0),
-        WHITE,
-        TextAlign::Center,
-    );
-    draw_text(
-        format!(
-            "fruit px:{}, py:{}",
-            state.game._fruit.px, state.game._fruit.py
-        )
-        .as_str(),
-        vec2(-8.0, 13.0),
-        WHITE,
-        TextAlign::Center,
-    );
 }
